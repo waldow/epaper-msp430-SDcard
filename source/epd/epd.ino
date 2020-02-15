@@ -1,6 +1,6 @@
 #include <SPI.h>
-//#include "pfatfs.h"
-//#include "pffconf.h"
+#include <pfatfs.h>
+#include <pffconf.h>
 #include "epd2in7b.h"
 
 #include "SPI.h" 
@@ -177,18 +177,218 @@ void setup()
 /*-----------------------------------------------------------------------*/
 void loop()
 {
+   //return;
+   while(1)
+  {
+ Serial.print("-");
+ //P1OUT ^= BIT0;                  // Toggle LED
+//  sleep(1000);
+ // sleep(1000);
 
+batCntDown--;
+if(batCntDown ==0)
+{
+  batCntDown =BAT_LEVEL;
+ BatCheck();
+}
+ 
+  if(showPic== true && readyDisplay == true)
+{
+  BatCheck();
+   if(batLow == true)
+   {
+   // DoStuff();
+   }else
+   {
+    
+    NextPic();
+   }
+   
+   
+    showPic =false;
+   
+ 
+ 
+}else
+{
+ 
+}
+ 
+
+  unusedPins();
+  if(doLog)
+ {
+    Serial.println("L Enter LPM3 w/ interrupt");
+ }
+  delay(200);
+   __bis_SR_register(LPM3_bits + GIE);           // Enter LPM3 w/ interrupt
+   if(doLog)
+    {
+     Serial.println("L After LPM3 w/ interrupt");
+    }
+  }
+}
+
+void NextPic()
+{
+  if(doLog)
+  {
+     Serial.println("N Start");
+  }
+  
+  if(!readyDisplay)
+  {
+   if(doLog)
+  {
+    Serial.println("N Not ready");
+  }
+    delay(500);
+
+    return;
+  }
+
+  
+  delay(500);
+   pinMode(ENABLE_SD_PIN, OUTPUT);
+   digitalWrite(ENABLE_SD_PIN, LOW);
+   delay(500);
+  delay(500);
+  readyDisplay=false;
+  pinMode (CSSD_PIN, OUTPUT);
+  digitalWrite(CSSD_PIN, HIGH);
+
+    pinMode(CS_PIN, OUTPUT);
+      digitalWrite(CS_PIN, HIGH);
+      if(doLog)
+  {
+      Serial.println("enable_boost Before");
+  }
+  digitalWrite(ENABLE_BOOST_PIN, HIGH);
+  if(doLog)
+  {
+    Serial.println("enable_boost After");
+  }
+  delay(500);
+  delay(500);
+ 
+ 
+    pinMode(RST_PIN, OUTPUT);
+    pinMode(DC_PIN, OUTPUT);
+ 
+   pinMode(BUSY_PIN, INPUT_PULLDOWN);
+ 
+   
+ BatCheck();
+ 
+   digitalWrite(RST_PIN, LOW);
+    delay(200);
+    digitalWrite(RST_PIN, HIGH);
+    delay(200); 
+     SPI.begin();
+      Epd epd;  
+ 
+  FatFs.begin(CSSD_PIN);
+ 
+ delay(200); 
+
+ 
+
+  
+ 
+ picCounter++;
+
+ if(picCounter > 21)
+  picCounter=1;
+
+ 
+ sprintf(filename1, "picb%0.3d.bin", picCounter);
+  if(doLog)
+  {
+    Serial.println(filename1);
+  }
+ rc = FatFs.open(filename1);
+   if (rc) { 
+    
+    die(rc);
+    readyDisplay=true;
+    return;
+    }
+    epd.SetFrameFatFsBlack();
+ rc = FatFs.close();
+ 
+ sprintf(filename1, "picr%0.3d.bin", picCounter);
+ if(doLog)
+  {
+ Serial.println(filename1);
+  }
+   rc = FatFs.open(filename1);
+   epd.SetFrameFatFsRed();
+   rc = FatFs.close();
+   if(doLog)
+  {
+   Serial.println("FatFs.close");
+  }
+  delay(200);
+ 
+    delay(200);
+    digitalWrite(ENABLE_SD_PIN, HIGH);
+    delay(200);
+   digitalWrite(ENABLE_BOOST_PIN, LOW);
+   delay(200);
+    rc = epd.Init() ;
+   if (rc != 0) {
+     if(doLog)
+  {
+    Serial.print("e-Paper init failed");
+  }
+    
+      die(rc);
+ 
+  }
+ if(doLog)
+ {
+   Serial.println("DisplayFrame B");
+ }
+   epd.DisplayFrame();
+  if(doLog)
+ {
+      Serial.println("DisplayFrame A");
+ }
+  /* Deep sleep */
+  
+  epd.Sleep();
+   SPI.end();
+  
+    
+   pinMode (CSSD_PIN, INPUT);
+   pinMode(CS_PIN, INPUT);
+    pinMode(RST_PIN, INPUT_PULLUP);
+    pinMode(DC_PIN, INPUT_PULLUP);
+    pinMode(BUSY_PIN, INPUT_PULLDOWN); 
+  
+      delay(500);
+       delay(500);
+ if(doLog)
+  {
+  Serial.println("N End");
+  }
 }
 
 bool TestSDCard()
 {
   bool r= true;
+  unsigned short int bw, br;
+  char buf[50];
+  uint32_t counter = 0;
  uint16_t supplyVoltsA,supplyVoltsB; 
  
  digitalWrite(ENABLE_BOOST_PIN, HIGH);
  supplyVoltsA =Msp430_GetSupplyVoltage();
-  Serial.print("SupplyVoltage A ");
+ if(doLog)
+ {
+  Serial.print("SupplyVoltage A= ");
   Serial.println(supplyVoltsA);
+ }
 pinMode(CSSD_PIN, OUTPUT);
 digitalWrite(ENABLE_SD_PIN, LOW);
 pinMode(ENABLE_BOOST_PIN, OUTPUT);
@@ -200,11 +400,13 @@ delay(500);
    delay(500);
    delay(500);
     supplyVoltsB =Msp430_GetSupplyVoltage();
-Serial.print("SupplyVoltage B ");
-  Serial.println(supplyVoltsB);
- Serial.print("SupplyVoltage Diff ");
-  Serial.println(supplyVoltsA - supplyVoltsB);
-    
+    if(doLog)
+ {
+    Serial.print("SupplyVoltage B ");
+    Serial.println(supplyVoltsB);
+    Serial.print("SupplyVoltage Diff ");
+    Serial.println(supplyVoltsA - supplyVoltsB);
+ }  
   
    delay(500);
    delay(500);
@@ -229,9 +431,11 @@ Serial.print("SupplyVoltage B ");
 
     ui32_ReadTemp = ((uint32_t)analogRead(TEMPSENSOR)*27069 - 18169625) *10 >> 16;
  BatCheck();
-   
+   if(doLog)
+ {
    Serial.println();
    Serial.println("Opening log file to write temperature(LOG.txt).");
+ }
    delay(100);
   
    
@@ -270,7 +474,15 @@ Serial.print("SupplyVoltage B ");
  BatCheck();
  return r;
 }
-
+void die ( int pff_err  )
+{
+  if(doLog)
+ {
+   Serial.println();
+   Serial.print("Failed with rc=");
+   Serial.print(pff_err,DEC);
+ }
+}
 void BatCheck(void)
 {
      supplyVolts =Msp430_GetSupplyVoltage();
