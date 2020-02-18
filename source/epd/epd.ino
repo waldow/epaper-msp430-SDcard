@@ -43,7 +43,7 @@ void unusePin(int pin)
 	pinMode(pin, INPUT_PULLUP); 
 
 }
-// Set most of the pins to input pullup.  To minimize the current draw
+//  To minimize the current draw
 void unusedPins()
 {
 	unusePin(P1_0);
@@ -148,7 +148,7 @@ void setup()
 	currentSeconds = 0;
 
 	CCTL0 = CCIE;                   // CCR0 interrupt enabled
-	CCR0 = 30720 * 2;           // 512 -> 1 sec, 30720 -> 1 min
+	CCR0 = 30720 * 2;           // 512 -> 1 sec, 30720 -> 1 min  * 2
 	TACTL = TASSEL_1 + ID_3 + MC_1;         // ACLK, /8, upmode
 
 
@@ -195,7 +195,6 @@ void loop()
 		{
 
 		}
-
 
 		unusedPins();
 		if (doLog)
@@ -447,6 +446,7 @@ void die(int pff_err)
 }
 void BatCheck(void)
 {
+	
 	supplyVolts = Msp430_GetSupplyVoltage();
 	if (doLog)
 	{
@@ -463,6 +463,8 @@ void BatCheck(void)
 	{
 		batLow = false;
 	}
+
+
 }
 void BatCheck2(void)
 {
