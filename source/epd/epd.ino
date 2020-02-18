@@ -12,7 +12,7 @@
 #define ENABLE_BOOST_PIN     9      // enable boost to 3.3v  pin . 0=off 1=on
 #define ENABLE_SD_PIN      6            // switch on mosfet to power sd. 0=on 1=off
 #define read_buffer 128             // size (in bytes) of read buffer 
-#define MIN_LEVEL 10 // 720 // 30 // 720 // 1440
+#define MIN_LEVEL 10 //
 #define BAT_LEVEL   5
 #define TMO_LEVEL   5
 volatile uint8_t readyDisplay = 0;
@@ -50,7 +50,7 @@ bool r1 = false;
 
 void unusePin(int pin)
 {
-	pinMode(pin, INPUT_PULLUP); //,INPUT_PULLDOWN);//  INPUT_PULLUP);
+	pinMode(pin, INPUT_PULLUP); 
 
 }
 // Set most of the pins to input pullup.  To minimize the current draw
@@ -63,18 +63,15 @@ void unusedPins()
 		unusePin(P1_2);
 	}
 	unusePin(P1_3);
-	//unusePin(P1_4);
+	
 	pinMode(P1_4, INPUT_PULLUP);
-	// unusePin(P1_5);
-	//unusePin(P1_6);
-	// unusePin(P1_7);
-	// unusePin(P2_0);
-	pinMode(P2_0, INPUT); //,INPUT_PULLDOWN);
-						  //unusePin(P2_1);
+	
+	pinMode(P2_0, INPUT); 
+						
 	unusePin(P2_2);
 	unusePin(P2_3);
 	unusePin(P2_4);
-	//unusePin(P2_5);
+	
 	pinMode(P2_5, INPUT_PULLUP);
 	pinMode(BUSY_PIN, INPUT_PULLDOWN);
 }
@@ -91,8 +88,7 @@ void setup()
 
 	if (doLog)
 		Serial.println("before enable_boost LOW");
-	// digitalWrite(ENABLE_BOOST_PIN, LOW);
-	//    return;
+	
 	analogIn = analogRead(A0);
 	for (int i = 0; i <= analogIn; i++)
 	{
@@ -155,11 +151,8 @@ void setup()
 	readyDisplay = true;
 	showPic = true;
 
-
-
 	BCSCTL1 |= DIVA_3;              // ACLK/8
 	BCSCTL3 |= XCAP_3;              //12.5pF cap- setting for 32768Hz crystal
-
 
 	currentMinutes = 0;
 	currentSeconds = 0;
@@ -180,10 +173,8 @@ void loop()
 	//return;
 	while (1)
 	{
-		Serial.print("-");
-		//P1OUT ^= BIT0;                  // Toggle LED
-		//  sleep(1000);
-		// sleep(1000);
+		if (doLog)
+			Serial.print("-");
 
 		batCntDown--;
 		if (batCntDown == 0)
@@ -201,7 +192,6 @@ void loop()
 			}
 			else
 			{
-
 				NextPic();
 			}
 
@@ -272,37 +262,21 @@ void NextPic()
 	}
 	delay(500);
 	delay(500);
-
-
 	pinMode(RST_PIN, OUTPUT);
 	pinMode(DC_PIN, OUTPUT);
-
 	pinMode(BUSY_PIN, INPUT_PULLDOWN);
-
-
 	BatCheck();
-
 	digitalWrite(RST_PIN, LOW);
 	delay(200);
 	digitalWrite(RST_PIN, HIGH);
 	delay(200);
 	SPI.begin();
 	Epd epd;
-
 	FatFs.begin(CSSD_PIN);
-
 	delay(200);
-
-
-
-
-
 	picCounter++;
-
 	if (picCounter > 21)
 		picCounter = 1;
-
-
 	sprintf(filename1, "picb%0.3d.bin", picCounter);
 	if (doLog)
 	{
@@ -317,7 +291,6 @@ void NextPic()
 	}
 	epd.SetFrameFatFsBlack();
 	rc = FatFs.close();
-
 	sprintf(filename1, "picr%0.3d.bin", picCounter);
 	if (doLog)
 	{
@@ -331,7 +304,6 @@ void NextPic()
 		Serial.println("FatFs.close");
 	}
 	delay(200);
-
 	delay(200);
 	digitalWrite(ENABLE_SD_PIN, HIGH);
 	delay(200);
@@ -343,18 +315,16 @@ void NextPic()
 		{
 			Serial.print("e-Paper init failed");
 		}
-
 		die(rc);
-
 	}
 	if (doLog)
 	{
-		Serial.println("DisplayFrame B");
+		Serial.println("DisplayFrame Before");
 	}
 	epd.DisplayFrame();
 	if (doLog)
 	{
-		Serial.println("DisplayFrame A");
+		Serial.println("DisplayFrame After");
 	}
 	/* Deep sleep */
 
@@ -488,12 +458,16 @@ void die(int pff_err)
 void BatCheck(void)
 {
 	supplyVolts = Msp430_GetSupplyVoltage();
-	Serial.print("Bat Supply Voltage ");
-	Serial.println(supplyVolts);
+	if (doLog)
+	{
+		Serial.print("Bat Supply Voltage ");
+		Serial.println(supplyVolts);
+	}
 	if (supplyVolts < 2424) {
 
 		batLow = true;
-		Serial.println("Bat Low");
+		if (doLog)
+			Serial.println("Bat Low");
 	}
 	else
 	{
@@ -511,12 +485,18 @@ void BatCheck2(void)
 	supplyVolts = Msp430_GetSupplyVoltage();
 	digitalWrite(CSSD_PIN, HIGH);
 	digitalWrite(ENABLE_SD_PIN, HIGH);
-	Serial.print("Bat check Supply Voltage ");
-	Serial.println(supplyVolts);
+	if (doLog)
+	{
+		Serial.print("Bat check Supply Voltage ");
+		Serial.println(supplyVolts);
+	}
 	if (supplyVolts < 2424) {
 
 		batLow = true;
-		Serial.println("Bat Low");
+		if (doLog)
+		{
+			Serial.println("Bat Low");
+		}
 	}
 	else
 	{
