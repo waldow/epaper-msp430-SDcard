@@ -2,11 +2,7 @@
 #include <pfatfs.h>
 #include <pffconf.h>
 #include "epd2in7b.h"
-
 #include "SPI.h" 
-
-
-
 
 #define CSSD_PIN      8             // chip select for sd card pin  . 0=on 1=off
 #define ENABLE_BOOST_PIN     9      // enable boost to 3.3v  pin . 0=off 1=on
@@ -23,21 +19,15 @@ volatile uint8_t timeoutCntDown = 0;
 
 char bufferData[read_buffer];
 int rc;
-
 uint32_t ui32_ReadTemp = 0;
 uint8_t StringLength = 0;
-
-
 volatile uint32_t AccStringLength = 0;
-
 unsigned int currentMinutes, currentSeconds;
 unsigned int wdtCounter = 0;
 volatile unsigned int picCounter = 0;
 volatile bool doLog = true;
 char charno[5];
 char filename1[12];
-//char filenamer[12];
-
 
 Epd epd;
 #define F_CPU  8000000
