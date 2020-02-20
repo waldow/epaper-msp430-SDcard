@@ -25,7 +25,6 @@ volatile uint32_t AccStringLength = 0;
 unsigned int currentMinutes, currentSeconds;
 unsigned int wdtCounter = 0;
 volatile unsigned int picCounter = 0;
-volatile bool doLog = true;
 char charno[5];
 char filename1[12];
 
@@ -36,6 +35,8 @@ int analogIn;
 uint16_t supplyVolts;
 bool batLow = false;
 bool r1 = false;
+
+volatile bool doLog = true;
 
 
 void unusePin(int pin)
@@ -266,7 +267,7 @@ void NextPic()
 	picCounter++;
 	if (picCounter > 21)
 		picCounter = 1;
-	sprintf(filename1, "picb%0.3d.bin", picCounter);
+	sprintf(filename1, "pic%0.3db.bin", picCounter);
 	if (doLog)
 	{
 		Serial.println(filename1);
@@ -280,7 +281,7 @@ void NextPic()
 	}
 	epd.SetFrameFatFsBlack();
 	rc = FatFs.close();
-	sprintf(filename1, "picr%0.3d.bin", picCounter);
+	sprintf(filename1, "pic%0.3dr.bin", picCounter);
 	if (doLog)
 	{
 		Serial.println(filename1);
