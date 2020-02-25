@@ -8,7 +8,7 @@
 #define ENABLE_BOOST_PIN     9      // enable boost to 3.3v  pin . 0=off 1=on
 #define ENABLE_SD_PIN      6            // switch on mosfet to power sd. 0=on 1=off
 #define read_buffer 128             // size (in bytes) of read buffer 
-#define MIN_LEVEL 10 //
+#define MIN_LEVEL 2 
 #define BAT_LEVEL   5
 #define TMO_LEVEL   5
 volatile uint8_t readyDisplay = 0;
@@ -335,6 +335,50 @@ void NextPic()
 		Serial.println("N End");
 	}
 }
+
+
+// Timer A0 interrupt service routine
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A (void)
+{
+
+  if (doLog)
+   Serial.println("T");
+ 
+  if(readyDisplay ==false)
+  {
+
+    timeoutCntDown++;
+    if(timeoutCntDown >= TMO_LEVEL)
+    {
+      if (doLog)
+        Serial.println("D");
+      WDTCTL = 0xDEAD;
+    }
+  }else
+  {
+    timeoutCntDown = 0;
+  }
+
+ minCntDown++;
+
+ if(minCntDown >= MIN_LEVEL)
+ {
+  minCntDown=0;
+
+   if(readyDisplay == true)
+   {
+     
+      showPic =true;
+     
+   }
+ }
+
+  __bic_SR_register_on_exit(LPM3_bits); 
+ 
+}
+
+
 
 bool TestSDCard()
 {
