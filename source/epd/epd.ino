@@ -330,6 +330,8 @@ void NextPic()
 
 	delay(500);
 	delay(500);
+	
+	readyDisplay = true;
 	if (doLog)
 	{
 		Serial.println("N End");
