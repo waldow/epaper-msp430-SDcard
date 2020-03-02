@@ -8,13 +8,17 @@
 #define ENABLE_BOOST_PIN     9      // enable boost to 3.3v  pin . 0=off 1=on
 #define ENABLE_SD_PIN      6            // switch on mosfet to power sd. 0=on 1=off
 #define read_buffer 128             // size (in bytes) of read buffer 
-#define MIN_LEVEL 2 
 #define BAT_LEVEL   5
 #define TMO_LEVEL   5
+#define PHASE_READ_SETTING  0
+#define PHASE_READ_VALUE    1
+#define PHASE_END_OF_LINE   2
+#define PHASE_END_OF_FILE   3
 volatile uint8_t readyDisplay = 0;
 volatile uint8_t showPic = 0;
 volatile uint8_t batCntDown = BAT_LEVEL;
-volatile unsigned int minCntDown = 0;
+volatile unsigned int minCounter = 0;
+volatile unsigned int minCntSetPoint = 10;
 volatile uint8_t timeoutCntDown = 0;
 
 char bufferData[read_buffer];
@@ -25,6 +29,9 @@ volatile uint32_t AccStringLength = 0;
 unsigned int currentMinutes, currentSeconds;
 unsigned int wdtCounter = 0;
 volatile unsigned int picCounter = 0;
+volatile unsigned int picMax = 6;
+volatile unsigned int picStart = 1;
+
 char charno[5];
 char filename1[12];
 
@@ -84,7 +91,7 @@ void setup()
 	for (int i = 0; i <= analogIn; i++)
 	{
 		picCounter++;
-		if (picCounter > 6)
+		if (picCounter > picMax)
 			picCounter = 0;
 	}
 	if (doLog)
@@ -119,11 +126,14 @@ void setup()
 		Serial.print("SupplyVoltage 2 ");
 		Serial.println(supplyVolts);
 	}
+ ReadSetupFromDisk();
+ /*
 	while (r1 == false)
 	{
 		r1 = TestSDCard();
 		delay(1000);
 	}
+ */
 	delay(1000);
 	supplyVolts = Msp430_GetSupplyVoltage();
 	if (doLog)
@@ -134,7 +144,7 @@ void setup()
 	}
 
 
-	minCntDown = 0;
+	minCounter = 0;
 
 
 	pinMode(PUSH2, INPUT_PULLUP);
@@ -264,9 +274,7 @@ void NextPic()
 	Epd epd;
 	FatFs.begin(CSSD_PIN);
 	delay(200);
-	picCounter++;
-	if (picCounter > 21)
-		picCounter = 1;
+
 	sprintf(filename1, "pic%0.3db.bin", picCounter);
 	if (doLog)
 	{
@@ -332,6 +340,9 @@ void NextPic()
 	delay(500);
 	
 	readyDisplay = true;
+  picCounter++;
+  if (picCounter > picMax)
+    picCounter = picStart;
 	if (doLog)
 	{
 		Serial.println("N End");
@@ -362,11 +373,11 @@ __interrupt void Timer_A (void)
     timeoutCntDown = 0;
   }
 
- minCntDown++;
+ minCounter++;
 
- if(minCntDown >= MIN_LEVEL)
+ if(minCounter >= minCntSetPoint)
  {
-  minCntDown=0;
+    minCounter=0;
 
    if(readyDisplay == true)
    {
@@ -541,6 +552,170 @@ void BatCheck2(void)
 	{
 		batLow = false;
 	}
+}
+
+void ReadSetupFromDisk()
+{
+    char settingname[10];
+    char settingvalue[10];
+    char ch[2];
+    short phase=PHASE_READ_SETTING;
+    int offset=0;
+    unsigned short int br;
+    uint16_t supplyVoltsA, supplyVoltsB;
+
+  digitalWrite(ENABLE_BOOST_PIN, HIGH);
+  supplyVoltsA = Msp430_GetSupplyVoltage();
+  if (doLog)
+  {
+    Serial.print("SupplyVoltage A= ");
+    Serial.println(supplyVoltsA);
+  }
+  pinMode(CSSD_PIN, OUTPUT);
+  digitalWrite(ENABLE_SD_PIN, LOW);
+  pinMode(ENABLE_BOOST_PIN, OUTPUT);
+
+  digitalWrite(ENABLE_SD_PIN, LOW);
+
+
+  delay(500);
+  delay(500);
+  delay(500);
+  supplyVoltsB = Msp430_GetSupplyVoltage();
+  if (doLog)
+  {
+    Serial.print("SupplyVoltage B ");
+    Serial.println(supplyVoltsB);
+    Serial.print("SupplyVoltage Diff ");
+    Serial.println(supplyVoltsA - supplyVoltsB);
+  }
+
+  delay(500);
+  delay(500);
+  delay(500);
+  BatCheck();
+  delay(500);
+  delay(500);
+  delay(500);
+  BatCheck();
+  SPI.begin();
+  delay(500);
+  delay(500);
+  BatCheck();
+
+  FatFs.begin(CSSD_PIN);
+  delay(500);
+  delay(500);
+  BatCheck();
+
+  delay(200);
+
+
+
+
+
+    
+    
+      rc = FatFs.open("SETUP.TXT");
+      if (rc) {
+          if (doLog)
+          {
+            Serial.println("Open SETUP.TXT failed");
+          }
+          die(rc);
+      }
+
+       
+    while(phase != PHASE_END_OF_FILE ) {
+             FatFs.read(ch, 1, &br);  
+             ch[1] = 0;
+              if (doLog)
+            {
+            Serial.print("Read :");
+           Serial.println(br, DEC);
+            }
+             if(br == 0)
+                phase =  PHASE_END_OF_FILE;
+              else
+              if(ch[0] == '=')
+                {
+                  phase = PHASE_READ_VALUE;
+                  offset=0;
+                }
+              else
+              if(ch[0] == 10 || ch[0] == 13)
+              {
+                  if(offset > 0)
+                  {
+                    SetSetting(settingname,settingvalue);
+                  }
+                  phase = PHASE_READ_SETTING;
+                  offset=0;
+             }else                
+             if(phase == PHASE_READ_SETTING)
+             {
+                settingname[offset] = ch[0];
+                settingname[offset+1] =0;
+                offset++;
+                /*
+                if (doLog)
+                {
+                  Serial.print("Setting Name =");
+                  Serial.println(settingname);
+                }
+*/
+                
+             }else
+             if(phase == PHASE_READ_VALUE)
+             {
+                      settingvalue[offset] = ch[0];
+                      settingvalue[offset+1] = 0;
+                      offset++;       
+                      /*
+                      if (doLog)
+                      {
+                          Serial.print("Setting Value =");
+                          Serial.println(settingvalue);
+                      }
+                      */
+             }
+           
+    }
+
+    rc = FatFs.close();  //Close file
+  if (rc) {  die(rc); }
+   
+   
+}
+
+void SetSetting(char *settingname,char *settingvalue)
+{
+      if (doLog)
+            {
+              Serial.println("===========");
+              Serial.println("Settings");
+              Serial.print("Name =");
+              Serial.println(settingname);
+              Serial.print("Value =");
+              Serial.println(settingvalue);
+              Serial.println("===========");
+            }
+      if(strcmp(settingname,"START") ==0)
+      {
+        picCounter = atoi(settingvalue);
+        picStart = picCounter;
+      }else if(strcmp(settingname,"END") ==0)
+      {
+          picMax = atoi(settingvalue);
+      }else if(strcmp(settingname,"DELAY") ==0)
+      {
+          minCntSetPoint = atoi(settingvalue);
+      } 
+      
+      
+      
+      
+      
 }
 
 uint16_t Msp430_GetSupplyVoltage(void)
