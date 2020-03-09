@@ -14,6 +14,7 @@
 #define PHASE_READ_VALUE    1
 #define PHASE_END_OF_LINE   2
 #define PHASE_END_OF_FILE   3
+#define PHASE_COMMENT_LINE   4
 volatile uint8_t readyDisplay = 0;
 volatile uint8_t showPic = 0;
 volatile uint8_t batCntDown = BAT_LEVEL;
@@ -29,6 +30,7 @@ volatile uint32_t AccStringLength = 0;
 unsigned int currentMinutes, currentSeconds;
 unsigned int wdtCounter = 0;
 volatile unsigned int picCounter = 0;
+volatile unsigned int picMin = 1;
 volatile unsigned int picMax = 6;
 volatile unsigned int picStart = 1;
 
@@ -341,8 +343,8 @@ void NextPic()
 	
 	readyDisplay = true;
   picCounter++;
-  if (picCounter > picMax)
-    picCounter = picStart;
+  if (picCounter >= picMax)
+    picCounter = picMin;
 	if (doLog)
 	{
 		Serial.println("N End");
@@ -637,14 +639,18 @@ void ReadSetupFromDisk()
              if(br == 0)
                 phase =  PHASE_END_OF_FILE;
               else
-              if(ch[0] == '=')
+              if(ch[0] == '=' && phase == PHASE_READ_SETTING)
                 {
                   phase = PHASE_READ_VALUE;
                   offset=0;
-                }
-              else
-              if(ch[0] == 10 || ch[0] == 13)
+                } //PHASE_COMMENT_LINE
+              else  if(ch[0] == '#')
               {
+                phase = PHASE_COMMENT_LINE;
+              }
+              else if(ch[0] == 10 || ch[0] == 13)
+              {
+                
                   if(offset > 0)
                   {
                     SetSetting(settingname,settingvalue);
@@ -704,7 +710,10 @@ void SetSetting(char *settingname,char *settingvalue)
       {
         picCounter = atoi(settingvalue);
         picStart = picCounter;
-      }else if(strcmp(settingname,"END") ==0)
+       }else if(strcmp(settingname,"MIN") ==0)
+      {
+          picMin = atoi(settingvalue);
+      }else if(strcmp(settingname,"MAX") ==0)
       {
           picMax = atoi(settingvalue);
       }else if(strcmp(settingname,"DELAY") ==0)
