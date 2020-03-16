@@ -80,11 +80,19 @@ void unusedPins()
 
 void setup()
 {
+  if (doLog)
+    Serial.begin(9600);
 
+    pinMode(ENABLE_BOOST_PIN, OUTPUT);// OUTPUT);
+  digitalWrite(ENABLE_BOOST_PIN, LOW);
+  for (int i = 0; i <= 3; i++)
+  {
+    BatCheck();
+    delay(1000);
+  }
 	pinMode(ENABLE_BOOST_PIN, OUTPUT);// OUTPUT);
 	digitalWrite(ENABLE_BOOST_PIN, HIGH);
-	if (doLog)
-		Serial.begin(9600);
+	
 
 	if (doLog)
 		Serial.println("before enable_boost LOW");
@@ -128,7 +136,14 @@ void setup()
 		Serial.print("SupplyVoltage 2 ");
 		Serial.println(supplyVolts);
 	}
- ReadSetupFromDisk();
+ 
+ if(ReadSetupFromDisk())
+ {
+  readyDisplay = true;
+ }else
+ {
+  readyDisplay = false;
+ }
  /*
 	while (r1 == false)
 	{
@@ -151,7 +166,7 @@ void setup()
 
 	pinMode(PUSH2, INPUT_PULLUP);
 
-	readyDisplay = true;
+	
 	showPic = true;
 
 	BCSCTL1 |= DIVA_3;              // ACLK/8
@@ -173,9 +188,7 @@ void setup()
 /*-----------------------------------------------------------------------*/
 void loop()
 {
-	//return;
-	while (1)
-	{
+	
 		if (doLog)
 			Serial.print("-");
 
@@ -191,7 +204,7 @@ void loop()
 			BatCheck();
 			if (batLow == true)
 			{
-				// DoStuff();
+				LowBatPic();
 			}
 			else
 			{
@@ -220,7 +233,7 @@ void loop()
 		{
 			Serial.println("L After LPM3 w/ interrupt");
 		}
-	}
+
 }
 
 void NextPic()
@@ -349,6 +362,70 @@ void NextPic()
 	{
 		Serial.println("N End");
 	}
+}
+
+void LowBatPic()
+{
+if (doLog)
+  {
+    Serial.println("LowBatPic Start");
+  }
+  delay(500);
+ digitalWrite(ENABLE_SD_PIN, HIGH);
+  delay(200);
+  digitalWrite(ENABLE_BOOST_PIN, LOW);
+  delay(500);
+  pinMode(CSSD_PIN, OUTPUT);
+  digitalWrite(CSSD_PIN, HIGH);
+  pinMode(CS_PIN, OUTPUT);
+  digitalWrite(CS_PIN, HIGH);
+  
+  pinMode(RST_PIN, OUTPUT);
+  pinMode(DC_PIN, OUTPUT);
+  pinMode(BUSY_PIN, INPUT_PULLDOWN);
+  digitalWrite(RST_PIN, LOW);
+  delay(200);
+  digitalWrite(RST_PIN, HIGH);
+  delay(200);
+  SPI.begin();
+  Epd epd;
+  
+  
+  rc = epd.Init();
+  if (rc != 0) {
+    if (doLog)
+    {
+      Serial.print("e-Paper init failed");
+    }
+    die(rc);
+  }
+  if (doLog)
+  {
+    Serial.println("DisplayFrame Before");
+  }
+  epd.ClearFrame();
+  epd.DisplayFrame();
+  if (doLog)
+  {
+    Serial.println("DisplayFrame After");
+  }
+  /* Deep sleep */
+
+  epd.Sleep();
+  SPI.end();
+
+
+  pinMode(CSSD_PIN, INPUT);
+  pinMode(CS_PIN, INPUT);
+  pinMode(RST_PIN, INPUT_PULLUP);
+  pinMode(DC_PIN, INPUT_PULLUP);
+  pinMode(BUSY_PIN, INPUT_PULLDOWN);
+
+  delay(500);
+  if (doLog)
+  {
+    Serial.println("LowBatPic End");
+  }
 }
 
 
@@ -503,6 +580,14 @@ void die(int pff_err)
 		Serial.print("Failed with rc=");
 		Serial.print(pff_err, DEC);
 	}
+  if(pff_err == 6)
+  {
+    digitalWrite(ENABLE_BOOST_PIN, LOW);
+    delay(500);
+    BatCheck();
+  }
+
+ 
 }
 void BatCheck(void)
 {
@@ -513,7 +598,7 @@ void BatCheck(void)
 		Serial.print("Bat Supply Voltage ");
 		Serial.println(supplyVolts);
 	}
-	if (supplyVolts < 2424) {
+	if (supplyVolts < 2600) {
 
 		batLow = true;
 		if (doLog)
@@ -556,7 +641,7 @@ void BatCheck2(void)
 	}
 }
 
-void ReadSetupFromDisk()
+bool ReadSetupFromDisk()
 {
     char settingname[10];
     char settingvalue[10];
@@ -617,14 +702,20 @@ void ReadSetupFromDisk()
 
 
     
-    
-      rc = FatFs.open("SETUP.TXT");
+      do{
+        BatCheck();
+          rc = FatFs.open("SETUP.TXT");
+          BatCheck();
+      }while(rc ==6);
+
+      
       if (rc) {
           if (doLog)
           {
             Serial.println("Open SETUP.TXT failed");
           }
           die(rc);
+          return false;
       }
 
        
@@ -690,7 +781,8 @@ void ReadSetupFromDisk()
 
     rc = FatFs.close();  //Close file
   if (rc) {  die(rc); }
-   
+
+   return true;
    
 }
 
