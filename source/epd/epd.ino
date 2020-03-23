@@ -15,6 +15,8 @@
 #define PHASE_END_OF_LINE   2
 #define PHASE_END_OF_FILE   3
 #define PHASE_COMMENT_LINE   4
+volatile uint8_t setupDone = 0;
+volatile uint8_t lowPowerPic = 0;
 volatile uint8_t readyDisplay = 0;
 volatile uint8_t showPic = 0;
 volatile uint8_t batCntDown = BAT_LEVEL;
@@ -137,13 +139,7 @@ void setup()
 		Serial.println(supplyVolts);
 	}
  
- if(ReadSetupFromDisk())
- {
-  readyDisplay = true;
- }else
- {
-  readyDisplay = false;
- }
+ 
  /*
 	while (r1 == false)
 	{
@@ -191,6 +187,26 @@ void loop()
 	
 		if (doLog)
 			Serial.print("-");
+      
+      if(setupDone == false)
+      {
+          if(ReadSetupFromDisk())
+          {
+            setupDone =true;
+            readyDisplay = true;
+            lowPowerPic =0;
+          }else
+          {
+            readyDisplay = false;
+          }
+          if (batLow == true &&   lowPowerPic ==0)
+          {
+              if (doLog)
+                  Serial.println("LowBatPic");
+              LowBatPic();
+              lowPowerPic =1;
+          }
+      }
 
 		batCntDown--;
 		if (batCntDown == 0)
@@ -643,6 +659,7 @@ void BatCheck2(void)
 
 bool ReadSetupFromDisk()
 {
+    bool result=false;
     char settingname[10];
     char settingvalue[10];
     char ch[2];
@@ -690,10 +707,36 @@ bool ReadSetupFromDisk()
   delay(500);
   BatCheck();
 
-  FatFs.begin(CSSD_PIN);
-  delay(500);
-  delay(500);
-  BatCheck();
+ 
+      supplyVoltsA = Msp430_GetSupplyVoltage();
+      rc= FatFs.begin(CSSD_PIN);
+      if (rc) 
+      {
+           if(rc ==1)
+           {
+              batLow = true;
+           }
+              if (doLog)
+              {
+                Serial.print("FatFs.begin failed ");
+                Serial.println(rc);
+              }
+              supplyVoltsB = Msp430_GetSupplyVoltage();
+              if (doLog)
+              {
+                if(supplyVoltsA > supplyVoltsB)
+                {
+                  Serial.print("SupplyVoltage Diff ");
+                  Serial.println(supplyVoltsA - supplyVoltsB);
+                }
+                if(supplyVoltsB > supplyVoltsA)
+                {
+                  Serial.print("SupplyVoltage Diff ");
+                  Serial.println(supplyVoltsB - supplyVoltsA);
+                }
+              }
+      }
+ 
 
   delay(200);
 
@@ -701,13 +744,34 @@ bool ReadSetupFromDisk()
 
 
 
-    
-      do{
-        BatCheck();
-          rc = FatFs.open("SETUP.TXT");
-          BatCheck();
-      }while(rc ==6);
+ if(rc == 0)  
+ {
 
+        supplyVoltsA = Msp430_GetSupplyVoltage();
+       
+          rc = FatFs.open("SETUP.TXT");
+          if(rc == 6)
+          {
+           //  digitalWrite(ENABLE_SD_PIN, HIGH);
+         //    delay(200);
+              supplyVoltsB = Msp430_GetSupplyVoltage();
+              if (doLog)
+              {
+                if(supplyVoltsA > supplyVoltsB)
+                {
+                  Serial.print("SupplyVoltage Diff ");
+                  Serial.println(supplyVoltsA - supplyVoltsB);
+                }
+                if(supplyVoltsB > supplyVoltsA)
+                {
+                  Serial.print("SupplyVoltage Diff ");
+                  Serial.println(supplyVoltsB - supplyVoltsA);
+                }
+              }
+         //      digitalWrite(ENABLE_SD_PIN, LOW);
+              delay(200);
+          }
+    
       
       if (rc) {
           if (doLog)
@@ -782,7 +846,11 @@ bool ReadSetupFromDisk()
     rc = FatFs.close();  //Close file
   if (rc) {  die(rc); }
 
-   return true;
+ }
+ if(rc)
+      return false;
+    else
+      return true;
    
 }
 
