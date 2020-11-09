@@ -72,6 +72,12 @@ extern const unsigned char lut_bw[];
 extern const unsigned char lut_bb[];
 extern const unsigned char lut_wb[];
 
+extern const unsigned char EPD_2in7_gray_lut_vcom[];
+extern const unsigned char EPD_2in7_gray_lut_ww[];
+extern const unsigned char EPD_2in7_gray_lut_bw[];
+extern const unsigned char EPD_2in7_gray_lut_bb[];
+extern const unsigned char EPD_2in7_gray_lut_wb[];
+
 class Epd : EpdIf {
 public:
     int width;
@@ -80,11 +86,13 @@ public:
     Epd();
     ~Epd();
     int  Init(void);
+     void Init_4Gray(void);
     void SendCommand(unsigned char command);
     void SendData(unsigned char data);
     int WaitUntilIdle(void);
     void Reset(void);
     void SetLut(void);
+    void SetGrayLut(void);
   //  void SetPartialWindow(const unsigned char* buffer_black, const unsigned char* buffer_red, int x, int y, int w, int l);
   //  void SetPartialWindowBlack(const unsigned char* buffer_black, int x, int y, int w, int l);
   //  void SetPartialWindowRed(const unsigned char* buffer_red, int x, int y, int w, int l);

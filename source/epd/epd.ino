@@ -335,7 +335,9 @@ void NextPic()
 	delay(200);
 	digitalWrite(ENABLE_BOOST_PIN, LOW);
 	delay(200);
+ /*
 	rc = epd.Init();
+
 	if (rc != 0) {
 		if (doLog)
 		{
@@ -343,6 +345,8 @@ void NextPic()
 		}
 		
 	}
+*/
+   epd.Init_4Gray();
 	if (doLog)
 	{
 		Serial.println("DisplayFrame Before");
