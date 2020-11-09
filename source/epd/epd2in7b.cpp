@@ -101,8 +101,8 @@ int Epd::Init(void) {
     SendCommand(VCOM_AND_DATA_INTERVAL_SETTING);
     SendData(0x87);        // define by OTP
     
-  //  SetLut();
-    SetGrayLut();
+    SetLut();
+  //  SetGrayLut();
     SendCommand(PARTIAL_DISPLAY_REFRESH);
     SendData(0x00);  
     /* EPD hardware init end */
@@ -177,6 +177,11 @@ void Epd::Init_4Gray(void)
 
     SendCommand(0X50);      //VCOM AND DATA INTERVAL SETTING      
     SendData(0x97);
+
+    //   SetLut();
+   SetGrayLut();
+//    SendCommand(PARTIAL_DISPLAY_REFRESH);
+//    SendData(0x00);  
 }
 
 
@@ -280,12 +285,12 @@ void Epd::SetGrayLut(void) {
 
     SendCommand(LUT_WHITE_TO_BLACK);                      //wb w
     for(count = 0; count < 42; count++) {
-        SendData(EPD_2in7_gray_lut_bb[count]);
+        SendData(EPD_2in7_gray_lut_wb[count]);
     } 
 
     SendCommand(LUT_BLACK_TO_BLACK);                      //bb b
     for(count = 0; count < 42; count++) {
-        SendData(EPD_2in7_gray_lut_wb[count]);
+        SendData(EPD_2in7_gray_lut_bb[count]);
     } 
 }
 
