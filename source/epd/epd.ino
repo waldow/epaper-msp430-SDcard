@@ -304,7 +304,8 @@ void NextPic()
 	delay(200);
 
 	//sprintf(filename1, "pic%0.3db.bin", picCounter);
-  sprintf(filename1, "pic001_1.bin", picCounter);
+  sprintf(filename1, "pic%0.3da.bin", picCounter);
+   //sprintf(filename1, "pic002_1.bin", picCounter);
 	if (doLog)
 	{
 		Serial.println(filename1);
@@ -319,7 +320,8 @@ void NextPic()
 	epd.SetFrameFatFsBlack();
 	rc = FatFs.close();
 	//sprintf(filename1, "pic%0.3dr.bin", picCounter);
-  sprintf(filename1, "pic001_2.bin", picCounter);
+  sprintf(filename1, "pic%0.3db.bin", picCounter);
+  //sprintf(filename1, "pic002_2.bin", picCounter);
 	if (doLog)
 	{
 		Serial.println(filename1);
